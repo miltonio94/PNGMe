@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 #[derive(Eq, PartialEq, Debug)]
-struct ChunkType {
+pub struct ChunkType {
     string_value: [char; 4],
     numeric_value: [u8; 4],
     ancillary_bit: Ancillary,
@@ -13,31 +13,31 @@ struct ChunkType {
 }
 
 impl ChunkType {
-    fn bytes(&self) -> [u8; 4] {
+    pub fn bytes(&self) -> [u8; 4] {
         self.numeric_value
     }
 
-    fn is_critical(&self) -> bool {
+    pub fn is_critical(&self) -> bool {
         self.ancillary_bit == Ancillary::Critical
     }
 
-    fn is_public(&self) -> bool {
+    pub fn is_public(&self) -> bool {
         self.private_bit == Private::Private
     }
 
-    fn is_reserved_bit_valid(&self) -> bool {
+    pub fn is_reserved_bit_valid(&self) -> bool {
         self.reserved_bit == Reserved::Reserved
     }
 
-    fn is_safe_to_copy(&self) -> bool {
+    pub fn is_safe_to_copy(&self) -> bool {
         self.safe_to_copy_bit == SafeToCopy::SafeToCopy
     }
 
-    fn is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         self.is_reserved_bit_valid()
     }
 
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         self.string_value.iter().collect()
     }
 }

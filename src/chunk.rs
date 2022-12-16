@@ -153,21 +153,18 @@ mod tests {
 
     #[test]
     fn test_chunk_length() {
-        // TODO: NOT PASSING
         let chunk = testing_chunk();
         assert_eq!(chunk.length(), 42);
     }
 
     #[test]
     fn test_chunk_type() {
-        // TODO: NOT PASSING
         let chunk = testing_chunk();
         assert_eq!(chunk.chunk_type().to_string(), String::from("RuSt"));
     }
 
     #[test]
     fn test_chunk_string() {
-        // TODO: NOT PASSING
         let chunk = testing_chunk();
         let chunk_string = chunk.data_as_string().unwrap();
         let expected_chunk_string = String::from("This is where your secret message will be!");
@@ -176,14 +173,12 @@ mod tests {
 
     #[test]
     fn test_chunk_crc() {
-        // TODO: NOT PASSING
         let chunk = testing_chunk();
         assert_eq!(chunk.crc(), 2882656334);
     }
 
     #[test]
     fn test_valid_chunk_from_bytes() {
-        // TODO: NOT PASSING
         let data_length: u32 = 42;
         let chunk_type = "RuSt".as_bytes();
         let message_bytes = "This is where your secret message will be!".as_bytes();
@@ -232,7 +227,6 @@ mod tests {
 
     #[test]
     pub fn test_chunk_trait_impls() {
-        // TODO: NOT PASSING
         let data_length: u32 = 42;
         let chunk_type = "RuSt".as_bytes();
         let message_bytes = "This is where your secret message will be!".as_bytes();

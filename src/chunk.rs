@@ -5,10 +5,10 @@ use crate::chunk_type::ChunkType;
 
 const DATA_TYPE_BYTES: usize = 4;
 const CRC_BYTES: usize = 4;
-const DATA_LENGTH_BYTES: usize = 4;
-const META_DATA_BYTES: usize = DATA_TYPE_BYTES + CRC_BYTES + DATA_LENGTH_BYTES;
+pub const DATA_LENGTH_BYTES: usize = 4;
+pub const META_DATA_BYTES: usize = DATA_TYPE_BYTES + CRC_BYTES + DATA_LENGTH_BYTES;
 
-struct Chunk {
+pub struct Chunk {
     chunk_type: ChunkType,
     data: Vec<u8>,
 }

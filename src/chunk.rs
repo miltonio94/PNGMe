@@ -3,10 +3,10 @@ use std::{string::String, string::FromUtf8Error};
 
 use crate::chunk_type::ChunkType;
 
-const META_DATA_BYTES: usize = 12;
-const DATA_TYPE_BYTES: usize = 12;
-const CRC_BYTES: usize = 12;
-const DATA_LENGTH_BYTES: usize = 12;
+const DATA_TYPE_BYTES: usize = 4;
+const CRC_BYTES: usize = 4;
+const DATA_LENGTH_BYTES: usize = 4;
+const META_DATA_BYTES: usize = DATA_TYPE_BYTES + CRC_BYTES + DATA_LENGTH_BYTES;
 
 struct Chunk {
     chunk_type: ChunkType,
@@ -77,14 +77,14 @@ impl TryFrom<&[u8]> for Chunk {
         let (data_length, value) = value.split_at(DATA_LENGTH_BYTES);
         let data_length: [u8; 4] = match data_length.try_into() {
             Ok(arr) => arr,
-            Err(_) => return  Result::Err("ERROR: Something went wrong in the parsing of the meta data, please contact author of program")
+            Err(_) => return  Result::Err("ERROR: Something went wrong in the parsing of the meta data, data length bytes, please contact author of program")
         };
         let data_length = u32::from_be_bytes(data_length) as usize;
 
         let (chunck_type, value) = value.split_at(DATA_TYPE_BYTES);
         let chunk_type: [u8; 4] = match chunck_type.try_into() {
             Ok(arr) => arr,
-            Err(_) => return  Result::Err("ERROR: Something went wrong in the parsing of the meta data, please contact author of program")
+            Err(_) => return  Result::Err("ERROR: Something went wrong in the parsing of the meta data, data type bytes, please contact author of program")
         };
         let chunk_type = ChunkType::try_from(chunk_type)?;
 

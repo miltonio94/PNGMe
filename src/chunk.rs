@@ -1,5 +1,5 @@
 use std::{fmt, fmt::Display};
-use std::{string::String, string::FromUtf8Error};
+use std::{string::FromUtf8Error, string::String};
 
 use crate::chunk_type::ChunkType;
 
@@ -15,7 +15,11 @@ pub struct Chunk {
 
 impl Display for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Chunk {{ chunk_type: {}, data: {:?} }}", self.chunk_type, self.data)
+        write!(
+            f,
+            "Chunk {{ chunk_type: {}, data: {:?} }}",
+            self.chunk_type, self.data
+        )
     }
 }
 
@@ -65,31 +69,29 @@ impl Chunk {
 }
 
 impl TryFrom<&[u8]> for Chunk {
-    type Error = &'static str;
+    type Error = ChunkError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         if value.len() < META_DATA_BYTES {
-            return Result::Err(
-                "ERROR: Length of input too small, must be at least 12 bytes in length",
-            );
+            return Result::Err(ChunkError::DataSampleSmall(value.len()));
         }
 
         let (data_length, value) = value.split_at(DATA_LENGTH_BYTES);
         let data_length: [u8; 4] = match data_length.try_into() {
             Ok(arr) => arr,
-            Err(_) => return  Result::Err("ERROR: Something went wrong in the parsing of the meta data, data length bytes, please contact author of program")
+            Err(_) => return Err(ChunkError::ParsingDataLength),
         };
         let data_length = u32::from_be_bytes(data_length) as usize;
 
         let (chunck_type, value) = value.split_at(DATA_TYPE_BYTES);
         let chunk_type: [u8; 4] = match chunck_type.try_into() {
             Ok(arr) => arr,
-            Err(_) => return  Result::Err("ERROR: Something went wrong in the parsing of the meta data, data type bytes, please contact author of program")
+            Err(_) => return Result::Err(ChunkError::ParsingDataType),
         };
         let chunk_type = ChunkType::try_from(chunk_type)?;
 
         if !chunk_type.is_valid() {
-            return Err("ERROR: Invalid Chunk type");
+            return Err(ChunkError::ParsingChunkType);
         }
 
         let (data, value) = value.split_at(data_length);
@@ -97,7 +99,7 @@ impl TryFrom<&[u8]> for Chunk {
         let (crc, _) = value.split_at(CRC_BYTES);
         let crc: [u8; 4] = match crc.try_into() {
             Ok(arr) => arr,
-            Err(_) => return Result::Err("ERROR parsing CRC from stream of data"),
+            Err(_) => return Result::Err(ChunkError::ParsingCrc),
         };
         let crc = u32::from_be_bytes(crc);
 
@@ -109,12 +111,45 @@ impl TryFrom<&[u8]> for Chunk {
         let crc_from_chunk = chunk.crc();
 
         if crc_from_chunk != crc {
-            return Result::Err("ERROR: Calculated CRC and CRC from stream of data do not match");
+            return Result::Err(ChunkError::CrcNotMatching(crc, crc_from_chunk));
         }
 
         Ok(chunk)
     }
 }
+
+#[derive(Debug)]
+enum ChunkError {
+    DataSampleSmall(usize),
+    ParsingDataLength,
+    ParsingDataType,
+    ParsingChunkType,
+    ParsingCrc,
+    CrcNotMatching(u32, u32),
+}
+
+impl Display for ChunkError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DataSampleSmall(length) => write!(
+                f,
+                "Error: size of data to small, must be at least {} bytes, data was {} bytes",
+                META_DATA_BYTES, length
+            ),
+            Self::ParsingDataLength => write!(f, "Error: Could not parse file's meta data"),
+            Self::ParsingDataType => write!(f, "Error: Could not parse file's data type"),
+            Self::ParsingChunkType => write!(f, "Error: Could not parse chunk type"),
+            Self::ParsingCrc => write!(f, "Error: Could not parse CRC"),
+            Self::CrcNotMatching(parsed_crc, calculated_crc) => write!(
+                f,
+                "Error: CRC not matching. Parsed CRC is {} and calculated CRC is {}",
+                parsed_crc, calculated_crc
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ChunkError {}
 
 #[cfg(test)]
 mod tests {

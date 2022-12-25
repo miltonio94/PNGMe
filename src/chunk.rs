@@ -73,7 +73,7 @@ impl TryFrom<&[u8]> for Chunk {
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         if value.len() < META_DATA_BYTES {
-            return Result::Err(ChunkError::DataSampleSmall(value.len()));
+            return Err(ChunkError::DataSampleSmall(value.len()));
         }
 
         let (data_length, value) = value.split_at(DATA_LENGTH_BYTES);
@@ -86,20 +86,19 @@ impl TryFrom<&[u8]> for Chunk {
         let (chunck_type, value) = value.split_at(DATA_TYPE_BYTES);
         let chunk_type: [u8; 4] = match chunck_type.try_into() {
             Ok(arr) => arr,
-            Err(_) => return Result::Err(ChunkError::ParsingDataType),
+            Err(_) => return Err(ChunkError::ParsingDataType),
         };
-        let chunk_type = ChunkType::try_from(chunk_type)?;
-
-        if !chunk_type.is_valid() {
-            return Err(ChunkError::ParsingChunkType);
-        }
+        let chunk_type = match ChunkType::try_from(chunk_type) {
+            Ok(result_chunk_type) => result_chunk_type,
+            Err(chunk_type_err) => return Err(ChunkError::ParsingChunkType(chunk_type_err)),
+        };
 
         let (data, value) = value.split_at(data_length);
 
         let (crc, _) = value.split_at(CRC_BYTES);
         let crc: [u8; 4] = match crc.try_into() {
             Ok(arr) => arr,
-            Err(_) => return Result::Err(ChunkError::ParsingCrc),
+            Err(_) => return Err(ChunkError::ParsingCrc),
         };
         let crc = u32::from_be_bytes(crc);
 
@@ -111,7 +110,7 @@ impl TryFrom<&[u8]> for Chunk {
         let crc_from_chunk = chunk.crc();
 
         if crc_from_chunk != crc {
-            return Result::Err(ChunkError::CrcNotMatching(crc, crc_from_chunk));
+            return Err(ChunkError::CrcNotMatching(crc, crc_from_chunk));
         }
 
         Ok(chunk)
@@ -119,11 +118,11 @@ impl TryFrom<&[u8]> for Chunk {
 }
 
 #[derive(Debug)]
-enum ChunkError {
+pub enum ChunkError {
     DataSampleSmall(usize),
     ParsingDataLength,
     ParsingDataType,
-    ParsingChunkType,
+    ParsingChunkType(&'static str),
     ParsingCrc,
     CrcNotMatching(u32, u32),
 }
@@ -138,7 +137,9 @@ impl Display for ChunkError {
             ),
             Self::ParsingDataLength => write!(f, "Error: Could not parse file's meta data"),
             Self::ParsingDataType => write!(f, "Error: Could not parse file's data type"),
-            Self::ParsingChunkType => write!(f, "Error: Could not parse chunk type"),
+            Self::ParsingChunkType(chunk_type_error) => {
+                write!(f, "Error: Could not parse chunk type: {}", chunk_type_error)
+            }
             Self::ParsingCrc => write!(f, "Error: Could not parse CRC"),
             Self::CrcNotMatching(parsed_crc, calculated_crc) => write!(
                 f,

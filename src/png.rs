@@ -1,4 +1,4 @@
-use crate::{chunk, chunk::Chunk};
+use crate::{chunk, chunk::Chunk, chunk::ChunkError};
 use std::fmt::Display;
 
 struct Png {
@@ -83,8 +83,8 @@ impl TryFrom<&[u8]> for Png {
         while index < value.len() {
             let data = &value[index..];
             let chunk = match Chunk::try_from(data) {
-                Ok(c) => c,
-                Err(e) => return Err(PngError::PngChunkError(e)),
+                Ok(chunk_result) => chunk_result,
+                Err(chunk_error) => return Err(PngError::PngChunkError(chunk_error)),
             };
 
             index += chunk.length() as usize + chunk::META_DATA_BYTES;
@@ -99,7 +99,7 @@ impl TryFrom<&[u8]> for Png {
 enum PngError {
     FailedToRemoveChunk,
     PngHeaderIncorrect,
-    PngChunkError(&'static str),
+    PngChunkError(ChunkError),
     NotEnoughData,
 }
 
